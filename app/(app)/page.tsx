@@ -1,10 +1,8 @@
 import {
   listarEmpreendimentos,
-  resumoDashboard,
   type EmpreendimentoComContadores,
 } from "@/lib/data/empreendimentos";
 import { CardEmpreendimento } from "@/components/empreendimento/CardEmpreendimento";
-import { ResumoCards } from "@/components/dashboard/ResumoCards";
 import { FiltrosDashboard } from "@/components/dashboard/FiltrosDashboard";
 import { requireAuthenticatedProfile } from "@/lib/auth";
 import { buttonVariants } from "@/components/ui/button";
@@ -16,15 +14,11 @@ function filtra(
   q?: string,
   cidade?: string,
   status?: string,
-  statusUnidade?: string,
 ) {
   return list.filter((e) => {
     if (q && !e.nome.toLowerCase().includes(q.toLowerCase())) return false;
     if (cidade && e.cidade !== cidade) return false;
     if (status && e.status !== status) return false;
-    if (statusUnidade === "disponivel" && e.disponiveis === 0) return false;
-    if (statusUnidade === "reservada" && e.reservadas === 0) return false;
-    if (statusUnidade === "vendida" && e.vendidas === 0) return false;
     return true;
   });
 }
@@ -33,7 +27,6 @@ type Search = {
   q?: string;
   cidade?: string;
   status?: string;
-  statusUnidade?: string;
 };
 
 export default async function Home({
@@ -43,25 +36,21 @@ export default async function Home({
 }) {
   const profile = await requireAuthenticatedProfile();
   const params = await searchParams;
-  const [resumo, todos] = await Promise.all([
-    resumoDashboard(),
-    listarEmpreendimentos(),
-  ]);
+  const todos = await listarEmpreendimentos();
   const cidades = Array.from(
     new Set(todos.map((e) => e.cidade).filter(Boolean)),
   ) as string[];
-  const filtrados = filtra(
-    todos,
-    params.q,
-    params.cidade,
-    params.status,
-    params.statusUnidade,
-  );
+  const filtrados = filtra(todos, params.q, params.cidade, params.status);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Empreendimentos</h1>
+        <div>
+          <h1 className="text-2xl font-semibold">Empreendimentos</h1>
+          <p className="text-sm text-muted-foreground">
+            Escolha um empreendimento para visualizar as unidades.
+          </p>
+        </div>
         {profile.role === "admin" && (
           <Link
             href="/empreendimentos/novo"
@@ -71,7 +60,6 @@ export default async function Home({
           </Link>
         )}
       </div>
-      <ResumoCards resumo={resumo} />
       <FiltrosDashboard cidades={cidades} />
       {filtrados.length === 0 ? (
         <p className="text-center text-muted-foreground py-12">
