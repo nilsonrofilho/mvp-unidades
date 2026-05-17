@@ -1,14 +1,8 @@
 import { requireAuthenticatedProfile } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
 import { HeaderEmpreendimento } from "./HeaderEmpreendimento";
-import { ArquivosTab } from "@/components/empreendimento/ArquivosTab";
+import { EmpreendimentoTabs } from "@/components/empreendimento/EmpreendimentoTabs";
 import { listarArquivos } from "@/lib/data/arquivos";
 import type { Empreendimento, Unidade } from "@/types/database";
 
@@ -29,7 +23,8 @@ export default async function EmpreendimentoPage({
   const { data: unidades } = await supabase
     .from("unidades")
     .select("*")
-    .eq("empreendimento_id", id);
+    .eq("empreendimento_id", id)
+    .order("identificador");
   const arquivos = await listarArquivos(id);
   const list = (unidades ?? []) as Unidade[];
   const contadores = {
@@ -37,35 +32,19 @@ export default async function EmpreendimentoPage({
     reservadas: list.filter((u) => u.status === "reservada").length,
     vendidas: list.filter((u) => u.status === "vendida").length,
   };
-  const isAdmin = profile.role === "admin";
-
   return (
     <div className="space-y-6">
       <HeaderEmpreendimento
         emp={emp as Empreendimento}
-        isAdmin={isAdmin}
+        isAdmin={profile.role === "admin"}
         contadores={contadores}
       />
-      <Tabs defaultValue="mapa">
-        <TabsList>
-          <TabsTrigger value="mapa">Mapa</TabsTrigger>
-          <TabsTrigger value="lista">Lista</TabsTrigger>
-          <TabsTrigger value="arquivos">Arquivos</TabsTrigger>
-        </TabsList>
-        <TabsContent value="mapa">
-          <p className="text-muted-foreground p-4">Mapa em construção.</p>
-        </TabsContent>
-        <TabsContent value="lista">
-          <p className="text-muted-foreground p-4">Lista em construção.</p>
-        </TabsContent>
-        <TabsContent value="arquivos">
-          <ArquivosTab
-            empreendimentoId={id}
-            arquivos={arquivos}
-            isAdmin={isAdmin}
-          />
-        </TabsContent>
-      </Tabs>
+      <EmpreendimentoTabs
+        emp={emp as Empreendimento}
+        unidades={list}
+        arquivos={arquivos}
+        profile={profile}
+      />
     </div>
   );
 }
