@@ -29,6 +29,7 @@ export async function updateSession(request: NextRequest) {
   const isPublic =
     path.startsWith("/_next") ||
     path.startsWith("/branding") ||
+    path.startsWith("/u/") ||
     path === "/favicon.ico";
 
   if (!user && !isAuthPage && !isPublic) {
