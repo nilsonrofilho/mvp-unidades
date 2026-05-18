@@ -7,6 +7,7 @@ export type EmpreendimentoComContadores = Empreendimento & {
   disponiveis: number;
   reservadas: number;
   vendidas: number;
+  preco_min_disponivel: number | null;
 };
 
 export type ResumoDashboard = {
@@ -28,10 +29,16 @@ export async function listarEmpreendimentos(): Promise<
   if (error || !emps) return [];
   const { data: units } = await supabase
     .from("unidades")
-    .select("empreendimento_id, status");
+    .select("empreendimento_id, status, preco_total");
   const byEmp = new Map<
     string,
-    { total: number; disp: number; res: number; vend: number }
+    {
+      total: number;
+      disp: number;
+      res: number;
+      vend: number;
+      preco_min: number | null;
+    }
   >();
   (units ?? []).forEach((u) => {
     const cur = byEmp.get(u.empreendimento_id as string) ?? {
@@ -39,21 +46,36 @@ export async function listarEmpreendimentos(): Promise<
       disp: 0,
       res: 0,
       vend: 0,
+      preco_min: null,
     };
     cur.total += 1;
-    if ((u.status as UnidadeStatus) === "disponivel") cur.disp += 1;
-    if ((u.status as UnidadeStatus) === "reservada") cur.res += 1;
-    if ((u.status as UnidadeStatus) === "vendida") cur.vend += 1;
+    const status = u.status as UnidadeStatus;
+    if (status === "disponivel") {
+      cur.disp += 1;
+      const preco = u.preco_total as number | null;
+      if (preco != null && (cur.preco_min == null || preco < cur.preco_min)) {
+        cur.preco_min = preco;
+      }
+    }
+    if (status === "reservada") cur.res += 1;
+    if (status === "vendida") cur.vend += 1;
     byEmp.set(u.empreendimento_id as string, cur);
   });
   return (emps as Empreendimento[]).map((e) => {
-    const c = byEmp.get(e.id) ?? { total: 0, disp: 0, res: 0, vend: 0 };
+    const c = byEmp.get(e.id) ?? {
+      total: 0,
+      disp: 0,
+      res: 0,
+      vend: 0,
+      preco_min: null,
+    };
     return {
       ...e,
       total_unidades: c.total,
       disponiveis: c.disp,
       reservadas: c.res,
       vendidas: c.vend,
+      preco_min_disponivel: c.preco_min,
     };
   });
 }

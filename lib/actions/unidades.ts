@@ -71,7 +71,7 @@ export async function excluirUnidadeAction(id: string) {
 
 export async function salvarCoordenadasAction(
   unidadeId: string,
-  coords: { x: number; y: number; width: number; height: number },
+  coords: { x: number; y: number; width: number; height: number } | null,
 ) {
   await requireAdminProfile();
   const supabase = await createSupabaseServerClient();
@@ -83,5 +83,27 @@ export async function salvarCoordenadasAction(
     .single();
   if (error || !data) return { error: error?.message ?? "Falha" };
   revalidatePath(`/empreendimentos/${data.empreendimento_id}`);
+  return { success: true };
+}
+
+// Salva várias unidades de uma vez (usado pelo auto-arranjar em grade).
+export async function salvarCoordenadasEmLoteAction(
+  empreendimentoId: string,
+  itens: Array<{
+    unidade_id: string;
+    coords: { x: number; y: number; width: number; height: number } | null;
+  }>,
+) {
+  await requireAdminProfile();
+  const supabase = await createSupabaseServerClient();
+  for (const it of itens) {
+    const { error } = await supabase
+      .from("unidades")
+      .update({ coordenadas_poligono: it.coords })
+      .eq("id", it.unidade_id)
+      .eq("empreendimento_id", empreendimentoId);
+    if (error) return { error: error.message };
+  }
+  revalidatePath(`/empreendimentos/${empreendimentoId}`);
   return { success: true };
 }

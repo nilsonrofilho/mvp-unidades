@@ -136,3 +136,137 @@ export async function historicoReservasAction(unidadeId: string) {
     .order("criado_em", { ascending: false });
   return { reservas: data ?? [] };
 }
+
+// Lista os corretores que têm atuação (reservas ativas + vendas) num empreendimento.
+export type CorretorDoEmpreendimento = {
+  id: string;
+  nome: string;
+  telefone: string | null;
+  ativo: boolean;
+  reservas_ativas: number;
+  vendas: number;
+};
+
+export async function listarCorretoresDoEmpreendimentoAction(
+  empreendimentoId: string,
+): Promise<CorretorDoEmpreendimento[]> {
+  await requireAuthenticatedProfile();
+  const supabase = await createSupabaseServerClient();
+
+  // Reservas ativas (corretor + unidade.empreendimento_id)
+  const { data: reservas } = await supabase
+    .from("reservas")
+    .select("corretor_id, unidade:unidades!inner(empreendimento_id)")
+    .eq("status", "ativa")
+    .eq("unidade.empreendimento_id", empreendimentoId);
+
+  // Vendas
+  const { data: vendas } = await supabase
+    .from("vendas")
+    .select("corretor_id, unidade:unidades!inner(empreendimento_id)")
+    .eq("unidade.empreendimento_id", empreendimentoId);
+
+  const tally = new Map<string, { reservas: number; vendas: number }>();
+  (reservas ?? []).forEach((r) => {
+    const id = r.corretor_id as string;
+    const cur = tally.get(id) ?? { reservas: 0, vendas: 0 };
+    cur.reservas += 1;
+    tally.set(id, cur);
+  });
+  (vendas ?? []).forEach((v) => {
+    const id = v.corretor_id as string;
+    const cur = tally.get(id) ?? { reservas: 0, vendas: 0 };
+    cur.vendas += 1;
+    tally.set(id, cur);
+  });
+
+  if (tally.size === 0) return [];
+  const ids = Array.from(tally.keys());
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, nome, telefone, ativo")
+    .in("id", ids);
+
+  return (profiles ?? [])
+    .map((p) => {
+      const t = tally.get(p.id as string) ?? { reservas: 0, vendas: 0 };
+      return {
+        id: p.id as string,
+        nome: p.nome as string,
+        telefone: (p.telefone as string | null) ?? null,
+        ativo: p.ativo as boolean,
+        reservas_ativas: t.reservas,
+        vendas: t.vendas,
+      };
+    })
+    .sort(
+      (a, b) =>
+        b.vendas + b.reservas_ativas - (a.vendas + a.reservas_ativas) ||
+        a.nome.localeCompare(b.nome),
+    );
+}
+
+// Retorna o corretor e o cliente atualmente atribuídos à unidade:
+// - se 'vendida': pega a venda mais recente
+// - se 'reservada': pega a reserva ativa
+// - caso contrário: null
+export type AtribuicaoUnidade = {
+  origem: "venda" | "reserva";
+  cliente: { nome: string; telefone: string };
+  corretor: { nome: string; telefone: string | null };
+} | null;
+
+export async function obterAtribuicaoUnidadeAction(
+  unidadeId: string,
+): Promise<AtribuicaoUnidade> {
+  await requireAuthenticatedProfile();
+  const supabase = await createSupabaseServerClient();
+
+  const { data: u } = await supabase
+    .from("unidades")
+    .select("status")
+    .eq("id", unidadeId)
+    .single();
+  if (!u) return null;
+
+  if (u.status === "vendida") {
+    const { data: v } = await supabase
+      .from("vendas")
+      .select(
+        "cliente:clientes(nome, telefone), corretor:profiles(nome, telefone)",
+      )
+      .eq("unidade_id", unidadeId)
+      .order("criado_em", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!v?.cliente || !v?.corretor) return null;
+    const cliente = v.cliente as unknown as { nome: string; telefone: string };
+    const corretor = v.corretor as unknown as {
+      nome: string;
+      telefone: string | null;
+    };
+    return { origem: "venda", cliente, corretor };
+  }
+
+  if (u.status === "reservada") {
+    const { data: r } = await supabase
+      .from("reservas")
+      .select(
+        "cliente:clientes(nome, telefone), corretor:profiles(nome, telefone)",
+      )
+      .eq("unidade_id", unidadeId)
+      .eq("status", "ativa")
+      .order("criado_em", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!r?.cliente || !r?.corretor) return null;
+    const cliente = r.cliente as unknown as { nome: string; telefone: string };
+    const corretor = r.corretor as unknown as {
+      nome: string;
+      telefone: string | null;
+    };
+    return { origem: "reserva", cliente, corretor };
+  }
+
+  return null;
+}

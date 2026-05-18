@@ -60,6 +60,16 @@ export function EmpreendimentoForm({
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!form.cidade?.trim() || !form.estado?.trim()) {
+      toast.error("Cidade e UF são obrigatórios.");
+      return;
+    }
+    if (!form.foto_capa_url) {
+      // Não bloqueia, mas avisa.
+      toast.warning(
+        "Sem foto de capa o card vai aparecer com placeholder. Considere adicionar antes de salvar.",
+      );
+    }
     startTransition(async () => {
       const payload = form as unknown as EmpreendimentoInput;
       const result =
@@ -81,6 +91,15 @@ export function EmpreendimentoForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-6 max-w-3xl">
+      {mode === "create" && (
+        <div className="rounded-lg border bg-accent/30 p-3 text-sm text-muted-foreground">
+          <p>
+            Para o card aparecer completo no painel: preencha <strong>nome</strong>,{" "}
+            <strong>cidade/UF</strong>, <strong>status</strong> e{" "}
+            <strong>foto de capa</strong>. Os demais campos são opcionais.
+          </p>
+        </div>
+      )}
       <div className="grid md:grid-cols-2 gap-4">
         <div className="space-y-1">
           <Label>Nome*</Label>
@@ -145,19 +164,21 @@ export function EmpreendimentoForm({
           />
         </div>
         <div className="space-y-1">
-          <Label>Cidade</Label>
+          <Label>Cidade*</Label>
           <Input
             value={form.cidade ?? ""}
             onChange={(e) => set("cidade", e.target.value)}
+            required
           />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <Label>UF</Label>
+            <Label>UF*</Label>
             <Input
               maxLength={2}
               value={form.estado ?? ""}
               onChange={(e) => set("estado", e.target.value.toUpperCase())}
+              required
             />
           </div>
           <div className="space-y-1">

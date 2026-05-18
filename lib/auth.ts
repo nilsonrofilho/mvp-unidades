@@ -21,11 +21,16 @@ export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
 export async function requireAuthenticatedProfile(): Promise<Profile> {
   const p = await getCurrentProfile();
   if (!p) redirect("/login");
+  // Apenas admins acessam o painel. Sessões antigas de corretor são derrubadas.
+  if (p.role !== "admin" || !p.ativo) {
+    const supabase = await createSupabaseServerClient();
+    await supabase.auth.signOut();
+    redirect("/login");
+  }
   return p;
 }
 
+// Mantido por compatibilidade; agora qualquer perfil autenticado já é admin.
 export async function requireAdminProfile(): Promise<Profile> {
-  const p = await requireAuthenticatedProfile();
-  if (p.role !== "admin") redirect("/");
-  return p;
+  return requireAuthenticatedProfile();
 }

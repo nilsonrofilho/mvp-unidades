@@ -54,17 +54,31 @@ export function ArquivosTab({
   return (
     <div className="space-y-4">
       {isAdmin && (
-        <FileUploaderMultiple
-          bucket="arquivos"
-          kind="document"
-          pathPrefix={empreendimentoId}
-          onUploaded={onUploaded}
-        />
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="font-medium">Arquivos do empreendimento</p>
+            <p className="text-xs text-muted-foreground">
+              PDFs, plantas, contratos. Visível para todos os corretores.
+            </p>
+          </div>
+          <FileUploaderMultiple
+            bucket="arquivos"
+            kind="document"
+            pathPrefix={empreendimentoId}
+            onUploaded={onUploaded}
+          />
+        </div>
       )}
       {list.length === 0 ? (
-        <p className="text-muted-foreground text-center py-8 text-sm">
-          Nenhum arquivo ainda.
-        </p>
+        <div className="text-center py-10 rounded-lg border-2 border-dashed border-muted-foreground/20 space-y-2">
+          <FileText className="size-8 mx-auto text-muted-foreground/60" />
+          <p className="text-sm font-medium">Nenhum arquivo ainda</p>
+          <p className="text-xs text-muted-foreground">
+            {isAdmin
+              ? "Use o botão acima para adicionar PDFs, plantas e contratos."
+              : "Quando o admin subir arquivos, eles aparecerão aqui."}
+          </p>
+        </div>
       ) : (
         <ul className="divide-y rounded-lg border bg-background">
           {list.map((a) => (

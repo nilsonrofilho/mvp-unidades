@@ -27,17 +27,11 @@ export default async function EmpreendimentoPage({
     .order("identificador");
   const arquivos = await listarArquivos(id);
   const list = (unidades ?? []) as Unidade[];
-  const contadores = {
-    disponiveis: list.filter((u) => u.status === "disponivel").length,
-    reservadas: list.filter((u) => u.status === "reservada").length,
-    vendidas: list.filter((u) => u.status === "vendida").length,
-  };
   return (
     <div className="space-y-6">
       <HeaderEmpreendimento
         emp={emp as Empreendimento}
         isAdmin={profile.role === "admin"}
-        contadores={contadores}
       />
       <EmpreendimentoTabs
         emp={emp as Empreendimento}

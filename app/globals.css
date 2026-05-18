@@ -51,39 +51,50 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  /* Fundo creme + cards brancos. Texto quase-preto pra contraste alto. */
+  --background: #f4f4f1;
+  --foreground: #1a1a1a;
+  --card: #ffffff;
+  --card-foreground: #1a1a1a;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a1a;
+
+  /* Vermelho de marca para ações primárias. */
+  --primary: #d63b3b;
+  --primary-foreground: #ffffff;
+
+  --secondary: #ebebe6;
+  --secondary-foreground: #1a1a1a;
+  --muted: #ebebe6;
+  --muted-foreground: #6b6b66;
+  --accent: #ebebe6;
+  --accent-foreground: #1a1a1a;
+
+  /* Destrutivo continua vermelho, mais escuro/saturado pra diferenciar. */
+  --destructive: #b32f2f;
+
+  --border: #e2e2dc;
+  --input: #e2e2dc;
+  --ring: #d63b3b;
+
+  --chart-1: #d63b3b;
+  --chart-2: #b32f2f;
+  --chart-3: #6b6b66;
+  --chart-4: #1a1a1a;
+  --chart-5: #ebebe6;
+
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-  --brand: #0066cc;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1a1a1a;
+  --sidebar-primary: #d63b3b;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ebebe6;
+  --sidebar-accent-foreground: #1a1a1a;
+  --sidebar-border: #e2e2dc;
+  --sidebar-ring: #d63b3b;
+
+  --brand: #d63b3b;
   --brand-foreground: #ffffff;
 }
 

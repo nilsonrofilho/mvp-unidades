@@ -91,6 +91,23 @@ export async function atualizarEmpreendimentoAction(
   return { success: true };
 }
 
+export async function atualizarMidiaEmpreendimentoAction(
+  id: string,
+  campo: "foto_capa_url" | "planta_implantacao_url",
+  url: string | null,
+) {
+  await requireAdminProfile();
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from("empreendimentos")
+    .update({ [campo]: url })
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/");
+  revalidatePath(`/empreendimentos/${id}`);
+  return { success: true };
+}
+
 export async function excluirEmpreendimentoAction(id: string) {
   await requireAdminProfile();
   const supabase = await createSupabaseServerClient();

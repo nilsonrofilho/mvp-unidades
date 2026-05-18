@@ -17,9 +17,25 @@ export async function loginAction(formData: FormData) {
     return { error: parsed.error.issues[0].message };
   }
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
-  if (error) {
+  const { data: signIn, error } = await supabase.auth.signInWithPassword(
+    parsed.data,
+  );
+  if (error || !signIn.user) {
     return { error: "E-mail ou senha incorretos" };
+  }
+  // Só admin pode acessar o painel. Corretores são contatos do link público
+  // e não logam no sistema.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, ativo")
+    .eq("id", signIn.user.id)
+    .single();
+  if (!profile || profile.role !== "admin" || !profile.ativo) {
+    await supabase.auth.signOut();
+    return {
+      error:
+        "Acesso restrito aos administradores. Corretores não fazem login — usem o link do imóvel enviado pelo admin.",
+    };
   }
   redirect("/");
 }

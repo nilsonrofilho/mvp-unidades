@@ -2,7 +2,12 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdminProfile } from "@/lib/auth";
 
-const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
+const IMAGE_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/svg+xml",
+];
 const DOC_TYPES = [
   "application/pdf",
   "image/png",

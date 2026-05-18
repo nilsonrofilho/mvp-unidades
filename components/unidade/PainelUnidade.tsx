@@ -1,7 +1,6 @@
 "use client";
-import { useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import type { Unidade, Profile } from "@/types/database";
 import {
   Drawer,
@@ -9,12 +8,35 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { StatusBadge } from "./StatusBadge";
 import { formatBRL, formatM2 } from "@/lib/formatacao";
-import { Copy, MessageCircle, Pencil, Trash2 } from "lucide-react";
+import {
+  Copy,
+  MessageCircle,
+  Pencil,
+  Trash2,
+  Phone,
+  Link2,
+  MoreVertical,
+  Share2,
+  XCircle,
+  CheckCircle2,
+  Tag,
+} from "lucide-react";
 import { toast } from "sonner";
 import { excluirUnidadeAction } from "@/lib/actions/unidades";
+import {
+  obterAtribuicaoUnidadeAction,
+  type AtribuicaoUnidade,
+} from "@/lib/actions/reservas";
 import { useRouter } from "next/navigation";
 
 export function PainelUnidade({
@@ -42,18 +64,39 @@ export function PainelUnidade({
 }) {
   const [, startTransition] = useTransition();
   const router = useRouter();
+  const [atribuicao, setAtribuicao] = useState<AtribuicaoUnidade>(null);
+  const unidadeId = unidade?.id;
+  const unidadeStatus = unidade?.status;
+
+  useEffect(() => {
+    if (!unidadeId || unidadeStatus === "disponivel") return;
+    let cancel = false;
+    obterAtribuicaoUnidadeAction(unidadeId).then((r) => {
+      if (!cancel) setAtribuicao(r);
+    });
+    return () => {
+      cancel = true;
+      setAtribuicao(null);
+    };
+  }, [unidadeId, unidadeStatus]);
+
   if (!unidade) return null;
   const isAdmin = profile.role === "admin";
 
   function copiar() {
     navigator.clipboard.writeText(mensagemWhatsapp);
-    toast.success("Mensagem copiada!");
+    toast.success("Mensagem copiada");
+  }
+  function copiarLinkPublico() {
+    const url = `${window.location.origin}/u/${unidade!.id}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Link público copiado");
   }
   function abrirWa() {
     window.open(linkWhatsapp, "_blank");
   }
   function excluir() {
-    if (!confirm("Excluir unidade?")) return;
+    if (!confirm("Excluir unidade? Esta ação é permanente.")) return;
     startTransition(async () => {
       const res = await excluirUnidadeAction(unidade!.id);
       if (res?.error) toast.error(res.error);
@@ -63,94 +106,257 @@ export function PainelUnidade({
       }
     });
   }
+  function navegarEdicao() {
+    router.push(
+      `/empreendimentos/${unidade!.empreendimento_id}/unidades/${unidade!.id}/editar`,
+    );
+  }
+
+  const podeReservar = unidade.status === "disponivel" && !!onReservar;
+  const podeMarcarVendida =
+    unidade.status === "reservada" && isAdmin && !!onMarcarVendida;
+  const podeCancelarReserva =
+    unidade.status === "reservada" && isAdmin && !!onCancelarReserva;
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange} direction="right">
       <DrawerContent className="ml-auto w-full sm:max-w-md">
-        <DrawerHeader>
-          <DrawerTitle>
-            {empreendimentoNome} — {unidade.identificador}
-          </DrawerTitle>
-          <StatusBadge status={unidade.status} />
+        <DrawerHeader className="border-b">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground truncate">
+                {empreendimentoNome}
+              </p>
+              <DrawerTitle className="truncate text-xl">
+                {unidade.identificador}
+              </DrawerTitle>
+              <div className="mt-2">
+                <StatusBadge status={unidade.status} />
+              </div>
+            </div>
+            {isAdmin && (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button variant="ghost" size="sm" aria-label="Mais ações">
+                      <MoreVertical className="size-4" />
+                    </Button>
+                  }
+                />
+                <DropdownMenuContent align="end">
+                  {podeCancelarReserva && (
+                    <DropdownMenuItem
+                      onClick={() => onCancelarReserva!(unidade)}
+                    >
+                      <XCircle /> Cancelar reserva
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem variant="destructive" onClick={excluir}>
+                    <Trash2 /> Excluir unidade
+                  </DropdownMenuItem>
+                  {podeCancelarReserva && <DropdownMenuSeparator />}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </DrawerHeader>
-        <div className="px-4 pb-4 space-y-3 overflow-y-auto">
-          {unidade.foto_url && (
-            <div className="relative aspect-video rounded overflow-hidden bg-muted">
-              <Image
-                src={unidade.foto_url}
-                alt={unidade.identificador}
-                fill
-                className="object-cover"
+
+        <div className="overflow-y-auto">
+          {/* 3 botões de ação primária — sempre visíveis no topo */}
+          {isAdmin && (
+            <div className="grid grid-cols-3 gap-2 p-4 border-b bg-muted/20">
+              <AcaoPrimaria
+                icon={<Tag className="size-5" />}
+                label="Reservar"
+                disabled={!podeReservar}
+                onClick={() => podeReservar && onReservar!(unidade)}
+                variant="primary"
+              />
+              <AcaoPrimaria
+                icon={<CheckCircle2 className="size-5" />}
+                label="Vender"
+                disabled={!podeMarcarVendida}
+                onClick={() =>
+                  podeMarcarVendida && onMarcarVendida!(unidade)
+                }
+                variant="success"
+              />
+              <AcaoPrimaria
+                icon={<Pencil className="size-5" />}
+                label="Editar"
+                onClick={navegarEdicao}
+                variant="neutral"
               />
             </div>
           )}
-          <dl className="grid grid-cols-2 gap-2 text-sm">
-            <dt className="text-muted-foreground">Área privativa</dt>
-            <dd>{formatM2(unidade.area_privativa_m2)}</dd>
-            <dt className="text-muted-foreground">Área total</dt>
-            <dd>{formatM2(unidade.area_total_m2)}</dd>
-            <dt className="text-muted-foreground">Quartos</dt>
-            <dd>
-              {unidade.qtd_quartos ?? "—"}
-              {unidade.qtd_suites ? ` (${unidade.qtd_suites} suítes)` : ""}
-            </dd>
-            <dt className="text-muted-foreground">Banheiros</dt>
-            <dd>{unidade.qtd_banheiros ?? "—"}</dd>
-            <dt className="text-muted-foreground">Vagas</dt>
-            <dd>{unidade.qtd_vagas ?? "—"}</dd>
-            <dt className="text-muted-foreground">Preço total</dt>
-            <dd className="font-semibold">{formatBRL(unidade.preco_total)}</dd>
-            {isAdmin && (
-              <>
-                <dt className="text-muted-foreground">Condomínio</dt>
-                <dd>{formatBRL(unidade.valor_condominio)}</dd>
-              </>
-            )}
-          </dl>
 
-          <div className="grid grid-cols-2 gap-2 pt-2">
-            <Button variant="outline" onClick={copiar}>
-              <Copy className="mr-1 size-4" /> Copiar
-            </Button>
-            <Button variant="outline" onClick={abrirWa}>
-              <MessageCircle className="mr-1 size-4" /> WhatsApp
-            </Button>
-          </div>
-
-          {unidade.status === "disponivel" && onReservar && (
-            <Button className="w-full" onClick={() => onReservar(unidade)}>
-              Reservar
-            </Button>
-          )}
-          {unidade.status === "reservada" && onCancelarReserva && (
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => onCancelarReserva(unidade)}
-            >
-              Cancelar reserva
-            </Button>
-          )}
-          {unidade.status === "reservada" && isAdmin && onMarcarVendida && (
-            <Button className="w-full" onClick={() => onMarcarVendida(unidade)}>
-              Marcar como vendida
-            </Button>
-          )}
-          {isAdmin && (
-            <div className="grid grid-cols-2 gap-2 pt-2">
-              <Link
-                href={`/empreendimentos/${unidade.empreendimento_id}/unidades/${unidade.id}/editar`}
-                className={buttonVariants({ variant: "ghost", size: "sm" })}
+          {/* Para corretor (sem botões admin) — mostra só Reservar como CTA principal */}
+          {!isAdmin && podeReservar && (
+            <div className="p-4 border-b">
+              <Button
+                size="lg"
+                className="w-full"
+                onClick={() => onReservar!(unidade)}
               >
-                <Pencil className="mr-1 size-4" /> Editar
-              </Link>
-              <Button variant="ghost" size="sm" onClick={excluir}>
-                <Trash2 className="mr-1 size-4 text-destructive" /> Excluir
+                <Tag className="mr-2 size-4" /> Reservar esta unidade
               </Button>
             </div>
           )}
+
+          <div className="px-4 py-4 space-y-4">
+            {unidade.foto_url && (
+              <div className="relative aspect-video rounded-lg overflow-hidden bg-muted">
+                <Image
+                  src={unidade.foto_url}
+                  alt={unidade.identificador}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            )}
+
+            {/* Preço grande */}
+            <div className="rounded-lg bg-accent/40 p-4">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                Preço total
+              </p>
+              <p className="text-3xl font-semibold leading-tight">
+                {formatBRL(unidade.preco_total)}
+              </p>
+              {isAdmin && unidade.valor_condominio != null && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Condomínio: {formatBRL(unidade.valor_condominio)}
+                </p>
+              )}
+            </div>
+
+            {/* Specs */}
+            <dl className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
+              <div>
+                <dt className="text-muted-foreground text-xs">Área privativa</dt>
+                <dd className="font-medium">{formatM2(unidade.area_privativa_m2)}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground text-xs">Área total</dt>
+                <dd className="font-medium">{formatM2(unidade.area_total_m2)}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground text-xs">Quartos</dt>
+                <dd className="font-medium">
+                  {unidade.qtd_quartos ?? "—"}
+                  {unidade.qtd_suites
+                    ? ` (${unidade.qtd_suites} suítes)`
+                    : ""}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground text-xs">Banheiros</dt>
+                <dd className="font-medium">{unidade.qtd_banheiros ?? "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground text-xs">Vagas</dt>
+                <dd className="font-medium">{unidade.qtd_vagas ?? "—"}</dd>
+              </div>
+            </dl>
+
+            {atribuicao && (
+              <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-2">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                  {atribuicao.origem === "venda"
+                    ? "Vendida por"
+                    : "Reservada por"}
+                </p>
+                <div>
+                  <p className="font-medium">{atribuicao.corretor.nome}</p>
+                  {atribuicao.corretor.telefone ? (
+                    <a
+                      href={`https://wa.me/${atribuicao.corretor.telefone.replace(/\D/g, "")}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <Phone className="size-3" />{" "}
+                      {atribuicao.corretor.telefone}
+                    </a>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Sem telefone cadastrado
+                    </p>
+                  )}
+                </div>
+                {isAdmin && (
+                  <div className="pt-1 border-t">
+                    <p className="text-xs text-muted-foreground">Cliente</p>
+                    <p className="text-sm">
+                      {atribuicao.cliente.nome}{" "}
+                      <span className="text-xs text-muted-foreground">
+                        · {atribuicao.cliente.telefone}
+                      </span>
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Compartilhar */}
+            <div className="space-y-2 pt-2 border-t">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+                <Share2 className="size-3" /> Compartilhar com cliente
+              </p>
+              <Button
+                variant="default"
+                className="w-full bg-emerald-600 hover:bg-emerald-700"
+                onClick={abrirWa}
+              >
+                <MessageCircle className="mr-1 size-4" /> Abrir WhatsApp
+              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" onClick={copiar}>
+                  <Copy className="mr-1 size-4" /> Copiar mensagem
+                </Button>
+                <Button variant="outline" onClick={copiarLinkPublico}>
+                  <Link2 className="mr-1 size-4" /> Copiar link
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </DrawerContent>
     </Drawer>
+  );
+}
+
+function AcaoPrimaria({
+  icon,
+  label,
+  onClick,
+  disabled,
+  variant,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  variant: "primary" | "success" | "neutral";
+}) {
+  const base =
+    "flex flex-col items-center justify-center gap-1 rounded-lg p-3 text-xs font-medium transition-all border";
+  const styles = disabled
+    ? "bg-muted text-muted-foreground border-transparent cursor-not-allowed opacity-50"
+    : variant === "primary"
+      ? "bg-primary text-primary-foreground border-primary hover:opacity-90 shadow-sm"
+      : variant === "success"
+        ? "bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-700 shadow-sm"
+        : "bg-background text-foreground border-border hover:bg-accent";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`${base} ${styles}`}
+    >
+      {icon}
+      {label}
+    </button>
   );
 }
