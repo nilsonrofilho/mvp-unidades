@@ -203,7 +203,7 @@ export function EmpreendimentoTabs({
               empreendimentoId={emp.id}
             />
           )}
-          {horizontalReady && !emp.planta_implantacao_url && (
+          {horizontalReady && (
             <MapaEsquematico
               unidades={unidades}
               filtro={filtro}
