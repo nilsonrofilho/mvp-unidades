@@ -86,6 +86,10 @@ export async function cancelarReservaAction(reservaId: string) {
 export async function marcarComoVendidaAction(
   unidadeId: string,
   valorFinal: number,
+  extras?: {
+    forma_pagamento?: "a_vista" | "financiado" | null;
+    data_venda?: string;
+  },
 ) {
   await requireAdminProfile();
   const supabase = await createSupabaseServerClient();
@@ -99,11 +103,23 @@ export async function marcarComoVendidaAction(
 
   const { data: r } = await supabase
     .from("reservas")
-    .select("id, cliente_id, corretor_id")
+    .select("id, cliente_id, corretor_id, forma_pagamento")
     .eq("unidade_id", unidadeId)
     .eq("status", "ativa")
     .maybeSingle();
   if (!r) return { error: "Nenhuma reserva ativa para esta unidade" };
+
+  // Se forma_pagamento veio diferente do da reserva, atualiza a reserva
+  // antes de fechar (assim o registro fica consistente).
+  if (
+    extras?.forma_pagamento &&
+    extras.forma_pagamento !== r.forma_pagamento
+  ) {
+    await supabase
+      .from("reservas")
+      .update({ forma_pagamento: extras.forma_pagamento })
+      .eq("id", r.id);
+  }
 
   await supabase.from("vendas").insert({
     unidade_id: unidadeId,
@@ -111,6 +127,7 @@ export async function marcarComoVendidaAction(
     corretor_id: r.corretor_id,
     reserva_origem_id: r.id,
     valor_final: valorFinal,
+    ...(extras?.data_venda ? { data_venda: extras.data_venda } : {}),
   });
   await supabase
     .from("reservas")
@@ -206,15 +223,29 @@ export async function listarCorretoresDoEmpreendimentoAction(
     );
 }
 
-// Retorna o corretor e o cliente atualmente atribuídos à unidade:
-// - se 'vendida': pega a venda mais recente
-// - se 'reservada': pega a reserva ativa
-// - caso contrário: null
-export type AtribuicaoUnidade = {
-  origem: "venda" | "reserva";
-  cliente: { nome: string; telefone: string };
-  corretor: { nome: string; telefone: string | null };
-} | null;
+// Retorna o corretor e o cliente atualmente atribuídos à unidade,
+// junto com os números financeiros da venda/reserva.
+export type AtribuicaoUnidade =
+  | {
+      origem: "venda";
+      cliente: { nome: string; telefone: string };
+      corretor: { nome: string; telefone: string | null };
+      valor_final: number;
+      data_venda: string;
+      forma_pagamento: "a_vista" | "financiado" | null;
+      valor_entrada: number | null;
+    }
+  | {
+      origem: "reserva";
+      cliente: { nome: string; telefone: string };
+      corretor: { nome: string; telefone: string | null };
+      valor_proposta_total: number;
+      valor_entrada: number | null;
+      forma_pagamento: "a_vista" | "financiado" | null;
+      observacoes: string | null;
+      criado_em: string;
+    }
+  | null;
 
 export async function obterAtribuicaoUnidadeAction(
   unidadeId: string,
@@ -233,7 +264,7 @@ export async function obterAtribuicaoUnidadeAction(
     const { data: v } = await supabase
       .from("vendas")
       .select(
-        "cliente:clientes(nome, telefone), corretor:profiles(nome, telefone)",
+        "valor_final, data_venda, reserva:reservas!reserva_origem_id(forma_pagamento, valor_entrada), cliente:clientes(nome, telefone), corretor:profiles(nome, telefone)",
       )
       .eq("unidade_id", unidadeId)
       .order("criado_em", { ascending: false })
@@ -245,14 +276,26 @@ export async function obterAtribuicaoUnidadeAction(
       nome: string;
       telefone: string | null;
     };
-    return { origem: "venda", cliente, corretor };
+    const reserva = (v.reserva ?? null) as unknown as {
+      forma_pagamento: "a_vista" | "financiado" | null;
+      valor_entrada: number | null;
+    } | null;
+    return {
+      origem: "venda",
+      cliente,
+      corretor,
+      valor_final: Number(v.valor_final),
+      data_venda: v.data_venda as string,
+      forma_pagamento: reserva?.forma_pagamento ?? null,
+      valor_entrada: reserva?.valor_entrada ?? null,
+    };
   }
 
   if (u.status === "reservada") {
     const { data: r } = await supabase
       .from("reservas")
       .select(
-        "cliente:clientes(nome, telefone), corretor:profiles(nome, telefone)",
+        "valor_proposta_total, valor_entrada, forma_pagamento, observacoes, criado_em, cliente:clientes(nome, telefone), corretor:profiles(nome, telefone)",
       )
       .eq("unidade_id", unidadeId)
       .eq("status", "ativa")
@@ -265,7 +308,16 @@ export async function obterAtribuicaoUnidadeAction(
       nome: string;
       telefone: string | null;
     };
-    return { origem: "reserva", cliente, corretor };
+    return {
+      origem: "reserva",
+      cliente,
+      corretor,
+      valor_proposta_total: Number(r.valor_proposta_total),
+      valor_entrada: r.valor_entrada != null ? Number(r.valor_entrada) : null,
+      forma_pagamento: (r.forma_pagamento as "a_vista" | "financiado" | null) ?? null,
+      observacoes: (r.observacoes as string | null) ?? null,
+      criado_em: r.criado_em as string,
+    };
   }
 
   return null;

@@ -29,7 +29,9 @@ import { cancelarReservaAction } from "@/lib/actions/reservas";
 import { branding } from "@/config/branding";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Map as MapIcon } from "lucide-react";
+import { Map as MapIcon, Building2, Plus, ImageOff } from "lucide-react";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 
 export function EmpreendimentoTabs({
   emp,
@@ -203,16 +205,36 @@ export function EmpreendimentoTabs({
             />
           )}
           {emp.tipo === "horizontal" && unidades.length === 0 && (
-            <p className="text-muted-foreground p-4 text-sm">
-              Cadastre unidades para o mapa aparecer.
-            </p>
+            <EmptyState
+              icon={<Building2 className="size-8" />}
+              titulo="Nenhuma unidade cadastrada ainda"
+              descricao="Cadastre as casas/lotes deste empreendimento para que o mapa apareça."
+              cta={
+                isAdmin
+                  ? {
+                      href: `/empreendimentos/${emp.id}/unidades/novo`,
+                      label: "Cadastrar primeira unidade",
+                      icone: <Plus className="size-4" />,
+                    }
+                  : undefined
+              }
+            />
           )}
           {emp.tipo === "vertical" &&
             !(emp.qtd_andares && emp.qtd_unidades_por_andar) && (
-              <p className="text-muted-foreground p-4 text-sm">
-                Mapa indisponível. Defina andares e unidades por andar em
-                Editar.
-              </p>
+              <EmptyState
+                icon={<ImageOff className="size-8" />}
+                titulo="Mapa indisponível"
+                descricao="Defina o número de andares e unidades por andar para gerar o mapa."
+                cta={
+                  isAdmin
+                    ? {
+                        href: `/empreendimentos/${emp.id}/editar`,
+                        label: "Configurar empreendimento",
+                      }
+                    : undefined
+                }
+              />
             )}
         </TabsContent>
         <TabsContent value="lista">
@@ -258,10 +280,50 @@ export function EmpreendimentoTabs({
           open={!!vender}
           onOpenChange={(b) => !b && setVender(null)}
           unidadeId={vender.id}
+          unidadeNome={vender.identificador}
+          empreendimentoNome={emp.nome}
+          enderecoCompleto={[emp.endereco, emp.cidade, emp.estado]
+            .filter(Boolean)
+            .join(", ")}
           sugerido={vender.preco_total}
         />
       )}
     </>
+  );
+}
+
+function EmptyState({
+  icon,
+  titulo,
+  descricao,
+  cta,
+}: {
+  icon: React.ReactNode;
+  titulo: string;
+  descricao: string;
+  cta?: { href: string; label: string; icone?: React.ReactNode };
+}) {
+  return (
+    <div className="rounded-2xl border border-dashed bg-muted/20 p-8 sm:p-12 text-center space-y-3">
+      <div className="mx-auto inline-flex size-14 items-center justify-center rounded-full bg-background border text-muted-foreground">
+        {icon}
+      </div>
+      <div className="space-y-1">
+        <p className="font-medium">{titulo}</p>
+        <p className="text-sm text-muted-foreground max-w-md mx-auto">
+          {descricao}
+        </p>
+      </div>
+      {cta && (
+        <Link
+          href={cta.href}
+          className={buttonVariants({ size: "sm" }) + " mt-2"}
+        >
+          {cta.icone}
+          {cta.label}
+        </Link>
+      )}
+    </div>
   );
 }
 

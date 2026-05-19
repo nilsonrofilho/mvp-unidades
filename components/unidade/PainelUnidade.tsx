@@ -260,41 +260,80 @@ export function PainelUnidade({
             </dl>
 
             {atribuicao && (
-              <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-2">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  {atribuicao.origem === "venda"
-                    ? "Vendida por"
-                    : "Reservada por"}
-                </p>
-                <div>
-                  <p className="font-medium">{atribuicao.corretor.nome}</p>
-                  {atribuicao.corretor.telefone ? (
-                    <a
-                      href={`https://wa.me/${atribuicao.corretor.telefone.replace(/\D/g, "")}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                    >
-                      <Phone className="size-3" />{" "}
-                      {atribuicao.corretor.telefone}
-                    </a>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      Sem telefone cadastrado
-                    </p>
+              <div
+                className={
+                  "rounded-lg border p-3 text-sm space-y-2.5 " +
+                  (atribuicao.origem === "venda"
+                    ? "border-rose-200 bg-rose-50/40"
+                    : "border-amber-200 bg-amber-50/40")
+                }
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-xs uppercase tracking-wide font-medium text-muted-foreground">
+                    {atribuicao.origem === "venda"
+                      ? "Vendida"
+                      : "Reservada"}
+                  </p>
+                  {atribuicao.origem === "venda" && (
+                    <span className="text-[11px] text-muted-foreground tabular-nums">
+                      {formatarData(atribuicao.data_venda)}
+                    </span>
                   )}
                 </div>
-                {isAdmin && (
-                  <div className="pt-1 border-t">
-                    <p className="text-xs text-muted-foreground">Cliente</p>
-                    <p className="text-sm">
-                      {atribuicao.cliente.nome}{" "}
-                      <span className="text-xs text-muted-foreground">
-                        · {atribuicao.cliente.telefone}
-                      </span>
+
+                {/* Valor em destaque */}
+                <div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {atribuicao.origem === "venda"
+                      ? "Valor final"
+                      : "Valor proposto"}
+                  </p>
+                  <p className="text-xl font-semibold leading-none">
+                    {formatBRL(
+                      atribuicao.origem === "venda"
+                        ? atribuicao.valor_final
+                        : atribuicao.valor_proposta_total,
+                    )}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {labelFormaPagamento(atribuicao.forma_pagamento)}
+                    {atribuicao.valor_entrada
+                      ? ` · entrada ${formatBRL(atribuicao.valor_entrada)}`
+                      : ""}
+                  </p>
+                </div>
+
+                {/* Corretor + cliente */}
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-foreground/5">
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Corretor</p>
+                    <p className="font-medium leading-tight">
+                      {atribuicao.corretor.nome}
                     </p>
+                    {atribuicao.corretor.telefone && (
+                      <a
+                        href={`https://wa.me/${atribuicao.corretor.telefone.replace(/\D/g, "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                      >
+                        <Phone className="size-3" />
+                        {atribuicao.corretor.telefone}
+                      </a>
+                    )}
                   </div>
-                )}
+                  {isAdmin && (
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Cliente</p>
+                      <p className="font-medium leading-tight">
+                        {atribuicao.cliente.nome}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {atribuicao.cliente.telefone}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -324,6 +363,26 @@ export function PainelUnidade({
       </DrawerContent>
     </Drawer>
   );
+}
+
+function formatarData(iso: string): string {
+  try {
+    return new Date(iso + "T00:00:00").toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function labelFormaPagamento(
+  f: "a_vista" | "financiado" | null | undefined,
+): string {
+  if (f === "a_vista") return "À vista";
+  if (f === "financiado") return "Financiado";
+  return "Forma de pagamento não informada";
 }
 
 function AcaoPrimaria({
