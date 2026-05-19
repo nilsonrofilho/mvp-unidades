@@ -32,6 +32,7 @@ export function MapaHorizontal({
   onSelect,
   isAdmin,
   empreendimentoId,
+  showLista = true,
 }: {
   plantaUrl: string;
   unidades: Unidade[];
@@ -39,6 +40,7 @@ export function MapaHorizontal({
   onSelect: (u: Unidade) => void;
   isAdmin: boolean;
   empreendimentoId: string;
+  showLista?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -92,7 +94,7 @@ export function MapaHorizontal({
         </div>
       )}
 
-      <ListaPorBloco unidades={filtradas} onSelect={onSelect} />
+      {showLista && <ListaPorBloco unidades={filtradas} onSelect={onSelect} />}
     </div>
   );
 }

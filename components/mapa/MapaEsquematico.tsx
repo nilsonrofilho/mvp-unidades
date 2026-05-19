@@ -101,7 +101,7 @@ export function MapaEsquematico({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border bg-emerald-50/40 p-3 sm:p-5">
+      <div className="rounded-xl border bg-emerald-50/30 p-2 sm:p-4">
         {usaLayoutPipa ? (
           <LayoutPipa
             blocos={blocos}

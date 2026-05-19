@@ -45,7 +45,6 @@ export function EmpreendimentoTabs({
   const [reservar, setReservar] = useState<Unidade | null>(null);
   const [vender, setVender] = useState<Unidade | null>(null);
   const [filtro, setFiltro] = useState<FiltroMapa>({ status: ["disponivel"] });
-  const [soDisponiveis, setSoDisponiveis] = useState(true);
   const [, startTransition] = useTransition();
   const router = useRouter();
   const quartosDistintos = Array.from(
@@ -85,25 +84,10 @@ export function EmpreendimentoTabs({
     });
   }
 
-  function toggleSoDisponiveis(checked: boolean) {
-    setSoDisponiveis(checked);
-    setFiltro((f) => ({
-      ...f,
-      status: checked ? ["disponivel"] : [],
-    }));
-  }
-
   function toggleStatusCard(s: "disponivel" | "reservada" | "vendida") {
     setFiltro((f) => {
-      const set = new Set(f.status);
-      const apenasEsse =
-        set.size === 1 && set.has(s);
-      if (apenasEsse) {
-        setSoDisponiveis(false);
-        return { ...f, status: [] };
-      }
-      setSoDisponiveis(s === "disponivel");
-      return { ...f, status: [s] };
+      const apenasEsse = f.status.length === 1 && f.status[0] === s;
+      return { ...f, status: apenasEsse ? [] : [s] };
     });
   }
 
@@ -118,8 +102,8 @@ export function EmpreendimentoTabs({
 
   return (
     <>
-      {/* Cards de resumo clicáveis = filtros rápidos */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Status strip — única fonte de filtro por status (clicável) */}
+      <div className="grid grid-cols-3 gap-2">
         <ResumoCard
           label="Disponíveis"
           valor={contadores.disponiveis}
@@ -150,40 +134,31 @@ export function EmpreendimentoTabs({
       </div>
 
       <Tabs defaultValue={defaultTab}>
-        <TabsList>
-          <TabsTrigger value="mapa">Mapa</TabsTrigger>
-          <TabsTrigger value="lista">
-            Lista{" "}
-            <span className="text-xs text-muted-foreground ml-1">
-              ({unidades.length})
-            </span>
-          </TabsTrigger>
-          <TabsTrigger value="arquivos">
-            Arquivos
-            {arquivos.length > 0 && (
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <TabsList>
+            <TabsTrigger value="mapa">Mapa</TabsTrigger>
+            <TabsTrigger value="lista">
+              Lista{" "}
               <span className="text-xs text-muted-foreground ml-1">
-                ({arquivos.length})
+                ({unidades.length})
               </span>
-            )}
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="mapa" className="space-y-3">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <MapaFiltros
-              value={filtro}
-              onChange={setFiltro}
-              quartosDistintos={quartosDistintos}
-            />
-            <label className="flex items-center gap-2 text-sm cursor-pointer select-none whitespace-nowrap">
-              <input
-                type="checkbox"
-                className="size-4 accent-primary"
-                checked={soDisponiveis}
-                onChange={(e) => toggleSoDisponiveis(e.target.checked)}
-              />
-              Só disponíveis
-            </label>
-          </div>
+            </TabsTrigger>
+            <TabsTrigger value="arquivos">
+              Arquivos
+              {arquivos.length > 0 && (
+                <span className="text-xs text-muted-foreground ml-1">
+                  ({arquivos.length})
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+          <MapaFiltros
+            value={filtro}
+            onChange={setFiltro}
+            quartosDistintos={quartosDistintos}
+          />
+        </div>
+        <TabsContent value="mapa" className="space-y-4 mt-4">
           {verticalReady && (
             <MapaVertical
               unidades={unidades}
@@ -194,16 +169,31 @@ export function EmpreendimentoTabs({
             />
           )}
           {horizontalReady && emp.planta_implantacao_url && (
-            <MapaHorizontal
-              plantaUrl={emp.planta_implantacao_url}
-              unidades={unidades}
-              filtro={filtro}
-              onSelect={setSel}
-              isAdmin={isAdmin}
-              empreendimentoId={emp.id}
-            />
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-4 items-start">
+              <div className="min-w-0">
+                <MapaEsquematico
+                  unidades={unidades}
+                  filtro={filtro}
+                  onSelect={setSel}
+                />
+              </div>
+              <aside className="min-w-0 lg:sticky lg:top-4 space-y-2">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground px-1">
+                  Planta de referência
+                </p>
+                <MapaHorizontal
+                  plantaUrl={emp.planta_implantacao_url}
+                  unidades={unidades}
+                  filtro={filtro}
+                  onSelect={setSel}
+                  isAdmin={isAdmin}
+                  empreendimentoId={emp.id}
+                  showLista={false}
+                />
+              </aside>
+            </div>
           )}
-          {horizontalReady && (
+          {horizontalReady && !emp.planta_implantacao_url && (
             <MapaEsquematico
               unidades={unidades}
               filtro={filtro}
@@ -296,33 +286,32 @@ function ResumoCard({
       type="button"
       onClick={onClick}
       className={
-        "rounded-xl border bg-background p-4 text-left transition-all hover:shadow-md " +
+        "rounded-xl border bg-background px-3 py-2.5 text-left transition-colors " +
         (ativo
-          ? "ring-2 ring-primary border-primary"
+          ? "border-foreground/40 bg-muted/40"
           : "hover:border-foreground/20")
       }
       aria-pressed={ativo}
     >
-      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-        <span className={`inline-block size-2.5 rounded-full ${cor}`} />
-        {label}
-        {ativo && (
-          <span className="ml-auto text-[10px] text-primary normal-case tracking-normal font-medium">
-            Filtrado
-          </span>
-        )}
+      <div className="flex items-center justify-between gap-2">
+        <span className="inline-flex items-center gap-2 text-sm font-medium text-foreground/80">
+          <span className={`inline-block size-2 rounded-full ${cor}`} />
+          {label}
+        </span>
+        <span className="text-xs text-muted-foreground tabular-nums">
+          /{total}
+        </span>
       </div>
-      <div className="mt-2 flex items-baseline gap-2">
-        <span className={`text-3xl font-semibold leading-none ${texto}`}>
+      <div className="mt-1.5 flex items-end justify-between gap-2">
+        <span className={`text-2xl font-semibold leading-none ${texto}`}>
           {valor}
         </span>
-        <span className="text-sm text-muted-foreground">de {total}</span>
-      </div>
-      <div className="mt-3 h-1.5 rounded-full bg-muted overflow-hidden">
-        <div
-          className={`h-full ${cor} transition-all`}
-          style={{ width: `${pct}%` }}
-        />
+        <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden ml-2 mb-0.5">
+          <div
+            className={`h-full ${cor} transition-all`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
       </div>
     </button>
   );
