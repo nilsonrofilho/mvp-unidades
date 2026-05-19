@@ -139,8 +139,8 @@ export function MapaEsquematico({
 }
 
 // ============== Layouts ==============
-const VIEWBOX_W = 900;
-const VIEWBOX_H = 640;
+const VIEWBOX_W = 780;
+const VIEWBOX_H = 540;
 
 function CardBlocoComCasas({
   bloco,
@@ -284,18 +284,18 @@ function LayoutPipa({
   onClickBloco: (nome: string) => void;
   onClickCasa: (u: Unidade) => void;
 }) {
-  // Espaçamento generoso, sem área de lazer.
+  // Layout compacto — menos espaço morto.
   const cardW = 200;
-  const cardH = 110;
-  const gapY = 12;
+  const cardH = 90;
+  const gapY = 8;
 
-  // 3 eixos centralizados horizontalmente.
-  const eixo3X = 30;
-  const eixo2X = 280;
-  const eixo1X = 530;
-  const eixo3StartY = 30;
+  // 3 eixos centralizados horizontalmente, vias mais estreitas.
+  const eixo3X = 20;
+  const eixo2X = 250;
+  const eixo1X = 480;
+  const eixo3StartY = 20;
   // Eixos 2 e 1 têm 3 blocos cada — centraliza no meio dos 6 do eixo 3.
-  const totalAltura = 6 * cardH + 5 * gapY; // altura ocupada pelo eixo 3
+  const totalAltura = 6 * cardH + 5 * gapY;
   const eixo23StartY =
     eixo3StartY + (totalAltura - 3 * cardH - 2 * gapY) / 2;
 
@@ -303,7 +303,7 @@ function LayoutPipa({
     return startY + ordem * (cardH + gapY);
   }
 
-  const viewBoxH = eixo3StartY + totalAltura + 80; // espaço para Duna e label
+  const viewBoxH = eixo3StartY + totalAltura + 40;
 
   return (
     <svg
@@ -409,27 +409,27 @@ function LayoutPipa({
       ))}
 
       {/* Bússola */}
-      <g transform={`translate(${VIEWBOX_W - 50}, 40)`}>
-        <circle r={20} fill="white" stroke="#d6d3d1" strokeWidth={1.2} />
+      <g transform={`translate(${VIEWBOX_W - 36}, 32)`}>
+        <circle r={16} fill="white" stroke="#d6d3d1" strokeWidth={1} />
         <text
           textAnchor="middle"
-          y={-4}
-          fontSize="10"
+          y={-3}
+          fontSize="8"
           fill="#737373"
           fontWeight="600"
         >
           N
         </text>
         <path
-          d="M 0 6 L 0 -10"
+          d="M 0 5 L 0 -8"
           stroke="#1a1a1a"
-          strokeWidth={2}
+          strokeWidth={1.6}
           strokeLinecap="round"
         />
         <path
-          d="M -4 -6 L 0 -10 L 4 -6"
+          d="M -3 -5 L 0 -8 L 3 -5"
           stroke="#1a1a1a"
-          strokeWidth={2}
+          strokeWidth={1.6}
           strokeLinecap="round"
           fill="none"
         />

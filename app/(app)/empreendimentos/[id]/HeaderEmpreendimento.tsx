@@ -89,29 +89,42 @@ export function HeaderEmpreendimento({
             )}
           </div>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <CorretoresDoEmpreendimento empreendimentoId={emp.id} />
           {isAdmin && (
             <>
+              {emp.tipo === "horizontal" && !emp.planta_implantacao_url && (
+                <MidiaUploaderInline
+                  empreendimentoId={emp.id}
+                  campo="planta_implantacao_url"
+                  currentUrl={emp.planta_implantacao_url}
+                  variant="button"
+                  label="Trocar planta"
+                  emptyLabel="Adicionar planta"
+                />
+              )}
               {emp.tipo === "horizontal" && emp.planta_implantacao_url && (
                 <Link
                   href={`/empreendimentos/${emp.id}/calibrar`}
-                  className={buttonVariants({ variant: "outline" })}
+                  className={buttonVariants({ variant: "outline", size: "sm" })}
                 >
-                  <Crosshair className="mr-1 size-4" /> Calibrar blocos
+                  <Crosshair className="size-4 text-amber-600" />
+                  Calibrar blocos
                 </Link>
               )}
               <Link
                 href={`/empreendimentos/${emp.id}/editar`}
-                className={buttonVariants({ variant: "outline" })}
+                className={buttonVariants({ variant: "outline", size: "sm" })}
               >
-                <Pencil className="mr-1 size-4" /> Editar
+                <Pencil className="size-4 text-muted-foreground" />
+                Editar
               </Link>
               <Link
                 href={`/empreendimentos/${emp.id}/unidades/novo`}
-                className={buttonVariants({})}
+                className={buttonVariants({ size: "sm" }) + " shadow-sm"}
               >
-                <Plus className="mr-1 size-4" /> Nova unidade
+                <Plus className="size-4" />
+                Nova unidade
               </Link>
             </>
           )}

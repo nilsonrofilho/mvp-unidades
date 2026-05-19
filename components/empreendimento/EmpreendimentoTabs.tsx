@@ -288,32 +288,35 @@ function ResumoCard({
       type="button"
       onClick={onClick}
       className={
-        "rounded-xl border bg-background px-3 py-2.5 text-left transition-colors " +
+        "group relative rounded-xl border bg-background text-left transition-all overflow-hidden " +
         (ativo
-          ? "border-foreground/40 bg-muted/40"
-          : "hover:border-foreground/20")
+          ? "border-foreground/30 shadow-sm"
+          : "border-border hover:border-foreground/20 hover:shadow-sm")
       }
       aria-pressed={ativo}
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className="inline-flex items-center gap-2 text-sm font-medium text-foreground/80">
-          <span className={`inline-block size-2 rounded-full ${cor}`} />
+      <div className="px-4 py-3">
+        <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider font-medium text-muted-foreground">
+          <span className={`inline-block size-1.5 rounded-full ${cor}`} />
           {label}
-        </span>
-        <span className="text-xs text-muted-foreground tabular-nums">
-          /{total}
-        </span>
-      </div>
-      <div className="mt-1.5 flex items-end justify-between gap-2">
-        <span className={`text-2xl font-semibold leading-none ${texto}`}>
-          {valor}
-        </span>
-        <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden ml-2 mb-0.5">
-          <div
-            className={`h-full ${cor} transition-all`}
-            style={{ width: `${pct}%` }}
-          />
         </div>
+        <div className="mt-2 flex items-baseline gap-1.5">
+          <span className={`text-3xl font-semibold leading-none tabular-nums ${texto}`}>
+            {valor}
+          </span>
+          <span className="text-xs text-muted-foreground tabular-nums">
+            de {total}
+          </span>
+          <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+            {pct}%
+          </span>
+        </div>
+      </div>
+      <div className="h-1 bg-muted/60">
+        <div
+          className={`h-full ${cor} transition-all`}
+          style={{ width: `${pct}%` }}
+        />
       </div>
     </button>
   );

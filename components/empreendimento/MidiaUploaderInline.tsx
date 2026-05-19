@@ -21,7 +21,7 @@ export function MidiaUploaderInline({
   empreendimentoId: string;
   campo: Campo;
   currentUrl: string | null;
-  variant: "hero" | "block";
+  variant: "hero" | "block" | "button";
   label: string; // "Trocar capa" | "Trocar planta"
   emptyLabel: string; // "Adicionar foto de capa" | "Adicionar planta de implantação"
 }) {
@@ -95,6 +95,24 @@ export function MidiaUploaderInline({
       }}
     />
   );
+
+  if (variant === "button") {
+    return (
+      <>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={abrirSeletor}
+          disabled={busy}
+        >
+          <Upload className="mr-1 size-4" />
+          {busy ? "Enviando..." : currentUrl ? label : emptyLabel}
+        </Button>
+        {inputEl}
+      </>
+    );
+  }
 
   if (variant === "hero") {
     // Sobreposto à hero da capa: botão "Trocar capa" no canto se tem imagem,
