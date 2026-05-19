@@ -29,6 +29,7 @@ import { cancelarReservaAction } from "@/lib/actions/reservas";
 import { branding } from "@/config/branding";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { Map as MapIcon } from "lucide-react";
 
 export function EmpreendimentoTabs({
   emp,
@@ -178,7 +179,8 @@ export function EmpreendimentoTabs({
                 />
               </div>
               <aside className="min-w-0 lg:sticky lg:top-4 space-y-2">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground px-1">
+                <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground px-1">
+                  <MapIcon className="size-3.5" />
                   Planta de referência
                 </p>
                 <MapaHorizontal
